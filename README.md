@@ -1,7 +1,8 @@
 # FEWD
 Fair Exchange Without Disputes
 
-FEWD is a fair exchange protocol that prevents the occurrence of non-performance disputes. It always completes to produce either success or failure. The items are either successfully exchanged or the protocol is aborted. 
+FEWD is a fair exchange protocol that prevents the occurrence of non-performance disputes. It always completes to produce either success or failure. The items are either successfully exchanged or the protocol is aborted and
+the items remain under the control of the original owners. 
 
 In FEWD, the two items under exchange need to remain concealed during the execution of the protocol until either both are revealed
 to their receivers or deleted if the protocol is cancelled.
