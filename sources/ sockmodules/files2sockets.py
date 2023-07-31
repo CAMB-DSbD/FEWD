@@ -1,18 +1,19 @@
 """
-title           : socket_files.py
+title           : files2sockets.py
 description     : This module implements function that perform operations
-                : to send and receive files over sockets. 
+                : 1) to send and receive files over sockets. 
+                : 2) singning messages and verification of signatures
                 :
 source          : It is based on the example from
                 :  https://www.thepythoncode.com/code/send-receive-files-using-sockets-python 
                 :
 author          : Carlos Molina Jimenez (Carlos.Molina@cl.cam.ac.uk)
 institution     : Computer Lab, University of Cambridge
-date            : 3 Jul 2023
+date            : 27 Jul 2023
 version         : 1.0
 usage           : 
 notes           :
-compile and run :  It can be imported by  clients and servers that  send and
+compile and run :  It can be imported by  clients and servers that send and
                 :  receive files over sockets.
                 :
 python_version  : Python 3.7.4 (default, Oct  8 2019, 14:48:17) 
@@ -22,6 +23,53 @@ python_version  : Python 3.7.4 (default, Oct  8 2019, 14:48:17)
 import socket
 import tqdm
 import os
+
+import time
+import pickle
+
+from ecdsa import SigningKey, VerifyingKey, BadSignatureError, NIST192p 
+
+BUFFER_SIZE= 4096
+
+
+"""
+Receives a list of asccii elements and returns an
+equivalent list with the elements converted to bytes
+in utf-8 format.
+"""
+def ascii2utf8(ascii_lst):
+    utf8_lst=[]
+    for i in range(0, len(ascii_lst)):
+        utf8_lst.append(ascii_lst[i].encode("utf-8"))
+    return utf8_lst
+
+
+"""
+Verifies the signature placed on the elements of list
+list=[t1, t2, ..., signature, vk]
+signature is placed on t1<#>t2<#> ... after encoding it
+          in utf-8 format
+sk = SigningKey.generate(curve=NIST192p)
+vk = sk.verifying_key but serialised with 
+     vk.to_string() before including in list
+carlos.molina@cl.cam.ac.uk 30 Jul 2023
+"""
+def verify_signature(list):
+    vk_string= list.pop()
+    vk = VerifyingKey.from_string(vk_string, curve=NIST192p)
+    tokensSignature= list.pop() 
+     
+    separator="<#>"
+    tokens=separator.join(list)
+    tokensBytes= tokens.encode("utf-8")
+    try:
+      vk.verify(tokensSignature, tokensBytes)
+      print("\n Verification of signature on tokens SUCCEDED")
+      return (True)
+    except BadSignatureError:
+      print("Verification of signature on tokens FAILED")
+
+
 
 """
 Open the file under the given name, read it and send it over
@@ -71,4 +119,163 @@ def recv_store_file(fname: str, fsize: int, buffer_size: int, sock: socket):
        # update the progress bar
        progress.update(len(bytes_read))
        nbytes= nbytes + len(bytes_read)
+
+
+
+
+"""
+ Read a serealised message (in pickle format) that 
+ contains a list from a socket and return a list.
+"""
+def recvpicklemsg(clientsocket, headersize):
+    # clientsocket: a socket wrapped in SSL context
+    #               and already connected to a client
+    # headersize:   the size of the header in the msg    
+    clisocket= clientsocket
+    hsize= headersize
+
+    full_msg = b''
+    new_msg = True
+    #while True:
+    full_msg_rcvd="NO"
+    while full_msg_rcvd=="NO":
+        print("B4 msg=clisicket.recv ")
+
+        #msg = clisocket.recv(16)
+        msg = clisocket.recv(BUFFER_SIZE)
+
+        print("After msg=clisicket.recv ")
+        if new_msg:
+            # take the first hsize th elements of the list
+            print("new msg len:",msg[:hsize])
+            msglen = int(msg[:hsize])
+            new_msg = False
+
+        print(f"full message length: {msglen}")
+
+        full_msg += msg
+
+        print(len(full_msg))
+
+        if len(full_msg) - hsize == msglen:
+            print("full msg recvd")
+            print(full_msg[hsize:])
+            print(pickle.loads(full_msg[hsize:]))
+            # recover list sent by client
+            list=pickle.loads(full_msg[hsize:])
+            print("Request from client:")
+            for i in range(0, len(list)):
+                print("[", i, "]=", list[i])
+
+            new_msg = True
+            full_msg = b""
+            full_msg_rcvd="YES"
+    return list
+
+
+
+"""
+ Given a list that contains a request (post or
+ retrieve) and a socket already connected to a
+ client, this function extracts the request,
+ composes a response in pickle format with
+ consideration of the hsize (header size) and
+ sends it back to the client.
+ If the request is post s_A or post c_A, the
+ function appends the token to the pbbrecrds.
+"""
+def sendpicklemsg(clisocket, list, hsize, pbbrecords, sk, vk):
+  if len(list)==2 and list[0] == "post" :
+     print("list[0]=", list[0], "list[1]=", list[1])
+     # server sends response to client
+     resplist=[list[1], "has been posted"]
+     pbbrecords.append(list[1])
+     msg = pickle.dumps(resplist)
+     msg = bytes(f"{len(msg):<{hsize}}", 'utf-8') + msg
+     # server sends to client
+     clisocket.send(msg)
+     print("clisocket has sent msg")
+
+     #clisocket.close()  
+
+  # copy this code to a function
+  elif len(list)== 1 and list[0] == "retrieve":
+     print("list[0]=", list[0])
+     #
+     # server sends SIGNED response to client
+     #
+     records= pbbrecords.copy()
+     separator="<#>"
+     tokens=separator.join(records)
+     tokensBytes= tokens.encode("utf-8")
+     tokensSignature= sk.sign(tokensBytes) # signature§
+     records.append(tokensSignature)
+     records.append(vk.to_string())
+     ### records[0]="c_A" #this alteration FAILS sig verify
+     ### [token1, token2, ...,signature, vk] ###
+     msg = pickle.dumps(records)
+     msg = bytes(f"{len(msg):<{hsize}}", 'utf-8') + msg
+     print(msg)
+     # server sends to client
+     clisocket.send(msg)  
+     #clisocket.close()
+     print("clisocket has been closed ...")
+
+  # copy this code to a function
+  else:
+     print("ser: Invalid request received")
+     # server sends response to client
+     resplist = ["Invalid request received"]
+     msg = pickle.dumps(resplist)
+     msg = bytes(f"{len(msg):<{hsize}}", 'utf-8') + msg
+     print(msg)
+     # server sends to client
+     #clisocket.send(msg)
+
+
+"""
+ Given a list that contains a request (post or
+ retrieve) and a socket already connected to a
+ client, this function extracts the request,
+ composes a response in pickle format with
+ consideration of the hsize (header size) and
+ sends it back to the client.
+ If the request is post s_A or post c_A, the
+ function appends the token to the pbbrecrds.
+"""
+def __sendpicklemsg(clisocket, list, hsize, pbbrecrds):
+  print("sendpicklemsh has been called")
+  if len(list)==2 and list[0] == "post" :
+     print("list[0]=", list[0], "list[1]=", list[1])
+     # server sends response to client
+     resplist=[list[1], "has been posted"]
+     pbbrecrds.append(list[1])
+     msg = pickle.dumps(resplist)
+     msg = bytes(f"{len(msg):<{hsize}}", 'utf-8') + msg
+     print("This is the msg:::::::::::::::::", msg)
+     # server sends to client
+     clisocket.send(msg)
+     print("clisocket has sent msg")
+
+     #clisocket.close()  
+
+  # copy this code to a function
+  elif len(list)== 1 and list[0] == "retrieve":
+     print("list[0]=", list[0])
+     # server sends response to client
+     msg = pickle.dumps(pbbrecrds)
+     msg = bytes(f"{len(msg):<{hsize}}", 'utf-8') + msg
+     print(msg)
+     # server sends to client
+     print("B4 clisocket.send(msg)..... ")
+     clisocket.send(msg)  
+     print("After clisocket.send(msg)..... ")
+     #clisocket.close()
+     print("After clisocket.close..... ")
+
+  # copy this code to a function
+  else:
+     print("ser: Invalid request received")
+     # server sends response to client
+     resplist = ["Invalid request received"]
 
