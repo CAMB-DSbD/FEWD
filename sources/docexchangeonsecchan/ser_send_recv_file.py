@@ -1,8 +1,11 @@
 """
-title           : ser_file_file.py
-description     : A server that establishes a secure chan over ssl
-                : with a server to send a file and receive another
-                : file as response.
+title           : ser_send_recv_file.py
+description     : Is a server that establishes a secure chan over ssl
+                : with a client. 
+                : 1) It listen for a connection request from a 
+                :    client.
+                : 2) Accepts the request and receives a file.
+                : 3) It sends another file as a response.
                 : I tested it with plain txt, jpeg and encrypted
                 : files under
                 : encrypt
@@ -15,11 +18,18 @@ description     : A server that establishes a secure chan over ssl
 source          : https://github.com/mikepound/tls-exercises
                 : 
 author          : Carlos Molina Jimenez
-date            : 1 Jul 2023
+date            : 5 Aug 2023
 version         : 1.0
 usage           : 
 notes           :
-compile and run : % python3 ser_file_file.py 
+compile and run : % python3 ser_send_recv_file.py filename2send
+                : Optionally the test_SSLfileserver.py testing
+                : program can be used to test the main class:
+                : SSLfileserver
+                :
+                : % py test_SSLfileserver.py marco.txt
+                : Listening on port 8282...
+                :
 python_version  :     
                 :
 
@@ -43,7 +53,7 @@ from files2sockets import read_send_file, recv_store_file
 
 LOCAL_HOST = 'localhost'
 LOCAL_PORT = 8282
-RESOURCE_DIRECTORY = Path(__file__).resolve().parent.parent / 'resources' / 'server'
+RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'resources' / 'server'
 SERVER_CERT_CHAIN = RESOURCE_DIRECTORY / 'server.intermediate.chain.pem'
 SERVER_KEY = RESOURCE_DIRECTORY / 'server.key.pem'
 
@@ -52,12 +62,10 @@ SERVER_KEY = RESOURCE_DIRECTORY / 'server.key.pem'
 # receive 4096 bytes each time
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
-#SER_FILE_NAME= "marco.txt"
-SER_FILE_NAME= "catencrypted"
-FILE_NAME_PREFIX= "fuchi"
+RECV_FILE_NAME_PREFIX= "fuchi_fromCli_"
 
 
-class SSLServer:
+class SSLserverfile():
     """
     This is a server
     """
@@ -68,14 +76,10 @@ class SSLServer:
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         context.load_cert_chain(certfile=SERVER_CERT_CHAIN, keyfile=SERVER_KEY)
 
-        # You can add code here to disable older protocols and cipher suites. 
-        # You can add similar code to the client, too.
-        # For help check out:
-        #      https://github.com/mikepound/tls-exercises/blob/master/python/README.md
 
         self.context = context
 
-    def start_server(self):
+    def start_server(self, ser_fileName):
         """
         Begins listening on a socket. Any connections that arrive are wrapped in 
         an SSLSocket using the context
@@ -105,7 +109,7 @@ class SSLServer:
                try:
                    # Wrap the socket in an SSL connection (will perform a handshake)
                    conn = self.context.wrap_socket(client_socket, server_side=True)
-                   ClientHandler(conn).start()
+                   ClientHandler(conn, ser_fileName).start()
                    server_socket.close()   # close the server socket or hang
                    server_socket_open="NO" # close and loop again: produces
                except ssl.SSLError as e:   # ValueError: f descriptor negative
@@ -117,9 +121,11 @@ class ClientHandler(threading.Thread):
     Thread handler leaves the main thread free to 
     handle any other incoming connections
     """
-    def __init__(self, conn):
+    def __init__(self, conn, ser_fileName):
         threading.Thread.__init__(self)
         self.conn = conn
+        self.ser_fileName= ser_fileName
+        print("\n\n\n...........ser_fileName:", self.ser_fileName)
 
     def run(self):
         try:
@@ -131,28 +137,29 @@ class ClientHandler(threading.Thread):
             
             # remove filename path if any
             filename= os.path.basename(filename)
-            filename= FILE_NAME_PREFIX + filename
+            filename= RECV_FILE_NAME_PREFIX + filename
             filesize= int(filesize)
             # start receiving the file from the socket
             # and writing to the file stream
            
             
-            print("s.py will now read file from socket....")
+            ########## server will receive from client ########
             recv_store_file(filename, filesize, BUFFER_SIZE, self.conn)
+            print("ser_file_file.py server has read file from socket....")
 
             
             ########## server will send file to client ########
             # experimenting with marco.txt file stored on current subdir
-            filename= SER_FILE_NAME
+            filename= self.ser_fileName
             filesize= os.path.getsize(filename)
             # In python sockets send and receive strings. Send a string
             self.conn.send(f"{filename}{SEPARATOR}{filesize}".encode())
             read_send_file(filename, filesize,  BUFFER_SIZE, self.conn)
+            print("ser_file_file.py has sent a file to cli_file)flie.py")
 
             #print("ser_str.py will now send a string to cli_str.py")
             # You are responsible for converting any data into bytes strings
             #self.conn.send(b"2nd: I'm here cli_str.py\n")
-            print("ser_str.py has sent a file to cli_str.py")
 
         except ssl.SSLError as e:
             print(e)
@@ -163,10 +170,16 @@ class ClientHandler(threading.Thread):
             print("ser_str.py has closed the socket")
 
 
-def main():
-    server = SSLServer()
-    server.start_server()
+def main(file_to_send):
+    server = SSLserverfile()
+    server.start_server(file_to_send) # file_to_send: name of the file
+                                      # that ser sends to cli as response
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Server that receives and send files")
+    parser.add_argument("file_to_send", help="Name of file to send to client")
+    args = parser.parse_args()
+    file_to_send = args.file_to_send
+    main(file_to_send)
