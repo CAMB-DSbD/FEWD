@@ -2,6 +2,9 @@
 title           : cli_send_recv_file.py 
 description     : Is a client that establishes a secure chan over ssl
                 : with a server. 
+                : I created the self-signed certificates following the steps
+                : https://github.com/mikepound/tls-exercises/tree/master/ca
+                :
                 : 1) It requests aconnection 
                 : 2) If accepted, it sends a file.
                 : 3) It expects another file as a response from server.
@@ -18,8 +21,8 @@ description     : Is a client that establishes a secure chan over ssl
 source          : https://github.com/mikepound/tls-exercises
                 : 
 author          : Carlos Molina Jimenez
-date            : 6 Jul 2023
-version         : 1.0
+date            : 3 Sep 2023
+version         : __
 usage           : 
 notes           : I have tested only with "localhost" (i.e 127.0.0.1)
                 : and port 8282
@@ -54,8 +57,8 @@ RECV_FILE_NAME_PREFIX= "fuchi_fromSer_"
 
 LOCAL_HOST = 'localhost'
 LOCAL_PORT = 8282
-RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'resources' / 'client'
-CA_CERT = RESOURCE_DIRECTORY / 'ca.cert.pem'
+RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'reso' / 'client'
+CA_CERT = RESOURCE_DIRECTORY / 'rootca.cert.pem'
 
 
 class SSLclientfile():

@@ -1,0 +1,527 @@
+
+/*
+ * Programmer: Carlos Molina-Jimenez
+ *             carlos.molina@cl.cam.ac.uk
+ *             2 Sep 2023
+ * Institution: Computer Laboratory, University of Cambridge
+ *             
+ * This document explain how I created a self-signed 
+ * ssl certificate.
+ * It is based (nearly copied and psted) on 
+ * https://github.com/mikepound/tls-exercises/tree/master/ca
+ *
+ * 1) I created the certtificate (rootca.cert.pem)
+ * 2) I created an intermediate certificate (intermediate.cert.pem) 
+ * 3) I used rootca.cert.pem for signing intermediate.cert.pem
+ * 4) I created a server and a client certificate
+ *    server.cert.pem and client.cert.pem
+ * 4) I used intermediate.cert.pem to sign the server and client
+ *    certificate.
+ * 5) I created a certificate chain for the server and the
+ *    client certificate: server.intermediate.chain.pem and
+ *                        client.intermediate.chain.pem
+ *
+ *    cat server.cert.pem >> server.intermediate.chain.pem
+ *    cat intermediate.cert.pem >> server.intermediate.chain.pem
+ *
+ *    cat client.cert.pem >> client.intermediate.chain.pem
+ *    cat intermediate.cert.pem >> client.intermediate.chain.pem
+ *
+ * Working environment
+ * bash-3.2$ openssl
+ * OpenSSL> version
+ * OpenSSL 1.0.2o  27 Mar 2018
+ *
+ * MacBook Air macOS Catalina 10.15.7
+ *
+ * bash-3.2$ python3
+ * Python 3.7.4 (v3.7.4:e09359112e, Jul  8 2019, 14:36:03) 
+ * [GCC 4.2.1 (Apple Inc. build 5666) (dot 3)] on darwin
+ *
+ * I tested on excercise2
+ * https://github.com/mikepound/tls-exercises/tree/master/python/exercise2 
+ */
+ 
+
+bash-3.2$ date
+Sat  2 Sep 2023 21:09:26 BST
+
+
+/*************
+1) My working folder
+**************/
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/ca_selfsign
+bash-3.2$ 
+
+
+/*************
+2) Generate priv key for the root ca authority
+**************/
+bash-3.2$ openssl genrsa -aes256 -out private/rootca.key.pem 4096
+Generating RSA private key, 4096 bit long modulus
+................................................................++
+.....................................................++
+e is 65537 (0x10001)
+Enter pass phrase for private/rootca.key.pem:
+Verifying - Enter pass phrase for private/rootca.key.pem:
+   /*
+    * xxxxxxxxo
+    */
+bash-3.2$ 
+
+
+
+/*************
+3) Self-sign the certificate of the rootca authority
+**************/
+bash-3.2$ openssl req -config openssl.cfg -key private/rootca.key.pem -new -x509 -days 7300 -sha256 -extensions v3_ca -out certs/rootca.cert.pem
+Enter pass phrase for private/rootca.key.pem:
+  /*
+   * xxxxxxxxo
+   */
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:
+State or Province Name [England]:
+Locality Name [Cambridge]:
+Organization Name [University of Cambridge]:
+Organizational Unit Name [Computer Laboratory]:
+Common Name []:TLS rootca CAMB
+Email Address [carlos.molina@cl.cam.ac.uk]:
+bash-3.2$ 
+
+
+
+
+/*************
+4) Generate priv key of the intermediate authority
+**************/
+bash-3.2$ openssl genrsa -aes256 -out intermediate/private/intermediate.key.pem 4096
+Generating RSA private key, 4096 bit long modulus
+...............................................................................................................................................................................................................................................................................................++
+...............................................................................................................................................++
+e is 65537 (0x10001)
+Enter pass phrase for intermediate/private/intermediate.key.pem:
+Verifying - Enter pass phrase for intermediate/private/intermediate.key.pem:
+        /*
+         * mxxxxxxxxxx
+         */
+bash-3.2$ 
+
+
+
+
+/*************
+5) Generate a sign request to sign the certificate of the intermediate authority
+**************/
+
+bash-3.2$ openssl req -config intermediate/openssl.cfg -new -sha256 -key intermediate/private/intermediate.key.pem -out intermediate/csr/intermediate.csr.pem
+Enter pass phrase for intermediate/private/intermediate.key.pem:
+      /*
+       * mxxxxxxxxxx
+       */
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:
+State or Province Name [England]:
+Locality Name [Cambridge]:
+Organization Name [University of Cambridge]:
+Organizational Unit Name [Computer Laboratory]:
+Common Name []:TLS interm CA CAMB                                  
+Email Address [carlos.molina@cl.cam.ac.uk]:
+bash-3.2$ 
+
+
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/ca_selfsign
+bash-3.2$ 
+
+
+bash-3.2$ ls
+README.md		index.txt.attr		newcerts/		serial
+certs/			index.txt.attr_del	openssl.cfg		serial_del
+creatCerts2sep2023.txt	index.txt_del		openssl.cfg_del
+index.txt		intermediate/		private/
+
+
+/*************
+6)  Create a openssl.cnf file. It is needed at signing time. The
+    files from
+    https://github.com/mikepound/tls-exercises/tree/master/ca
+    don't have the openssl.cnf in the working folder, thus
+    I created it.
+**************/
+
+bash-3.2$ cp openssl.cfg openssl.cnf
+
+
+
+/*************
+7) Sign the the certificate of the intermediate authority, using
+* rootca.cert.pem
+**************/
+
+bash-3.2$ openssl ca -config openssl.cnf -extensions v3_intermediate_ca -days 3650 -notext -md sha256 -in intermediate/csr/intermediate.csr.pem -out intermediate/certs/intermediate.cert.pem
+Using configuration from openssl.cnf
+Enter pass phrase for ./private/rootca.key.pem:
+Check that the request matches the signature
+Signature ok
+Certificate Details:
+        Serial Number: 20480 (0x5000)
+        Validity
+            Not Before: Sep  2 21:00:53 2023 GMT
+            Not After : Aug 30 21:00:53 2033 GMT
+        Subject:
+            countryName               = GB
+            stateOrProvinceName       = England
+            organizationName          = University of Cambridge
+            organizationalUnitName    = Computer Laboratory
+            commonName                = TLS interm CA CAMB
+            emailAddress              = carlos.molina@cl.cam.ac.uk
+        X509v3 extensions:
+            X509v3 Subject Key Identifier: 
+                BF:98:79:C5:43:31:2F:7A:68:F7:B5:1E:95:7A:DC:97:AF:1E:11:9D
+            X509v3 Authority Key Identifier: 
+                keyid:8E:BD:3E:52:7E:F1:9D:79:81:5A:6A:FA:B6:8F:46:17:B2:62:61:8E
+
+            X509v3 Basic Constraints: critical
+                CA:TRUE, pathlen:0
+            X509v3 Key Usage: critical
+                Digital Signature, Certificate Sign, CRL Sign
+Certificate is to be certified until Aug 30 21:00:53 2033 GMT (3650 days)
+Sign the certificate? [y/n]:y
+
+
+1 out of 1 certificate requests certified, commit? [y/n]y
+Write out database with 1 new entries
+Data Base Updated
+bash-3.2$ 
+
+
+
+/*
+ ***************************************************
+ ********  server cert ****************
+ ***************************************************
+ */
+
+/*************
+8) Generate the priv key of the server 
+**************/
+
+bash-3.2$ openssl genrsa -aes256 -out intermediate/private/server.key.pem 2048
+Generating RSA private key, 2048 bit long modulus
+..............+++
+.....+++
+e is 65537 (0x10001)
+Enter pass phrase for intermediate/private/server.key.pem:
+Verifying - Enter pass phrase for intermediate/private/server.key.pem:
+    /*
+     *  sxxxxxxxxxx
+     */
+
+
+
+
+/*************
+9) Generate a sign request to sing the server's certificate 
+**************/
+
+bash-3.2$ openssl req -config intermediate/openssl.cfg -key intermediate/private/server.key.pem -new -sha256 -out intermediate/csr/server.csr.pem
+Enter pass phrase for intermediate/private/server.key.pem:
+      /*
+       * sxxxxxxxxxx
+       */
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:
+State or Province Name [England]:
+Locality Name [Cambridge]:
+Organization Name [University of Cambridge]:
+Organizational Unit Name [Computer Laboratory]:
+Common Name []:TLS server CAMB
+Email Address [carlos.molina@cl.cam.ac.uk]:
+bash-3.2$ 
+
+
+
+/*************
+10) Sign the server's certificate, using the intermediate certificate 
+**************/
+bash-3.2$ openssl ca -config intermediate/openssl.cfg -extensions server_cert -days 375 -notext -md sha256 -in intermediate/csr/server.csr.pem -out intermediate/certs/server.cert.pem
+Using configuration from intermediate/openssl.cfg
+Enter pass phrase for ./intermediate/private/intermediate.key.pem:
+  /*
+   * mxxxxxxxxxx
+   */
+Check that the request matches the signature
+Signature ok
+Certificate Details:
+        Serial Number: 20480 (0x5000)
+        Validity
+            Not Before: Sep  2 21:09:18 2023 GMT
+            Not After : Sep 11 21:09:18 2024 GMT
+        Subject:
+            countryName               = GB
+            stateOrProvinceName       = England
+            localityName              = Cambridge
+            organizationName          = University of Cambridge
+            organizationalUnitName    = Computer Laboratory
+            commonName                = TLS server CAMB
+            emailAddress              = carlos.molina@cl.cam.ac.uk
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Cert Type: 
+                SSL Server
+            Netscape Comment: 
+                OpenSSL Generated Server Certificate
+            X509v3 Subject Key Identifier: 
+                AF:73:58:5C:1A:40:2C:70:8B:89:E4:CB:63:16:8E:E1:D2:7D:BF:97
+            X509v3 Authority Key Identifier: 
+                keyid:BF:98:79:C5:43:31:2F:7A:68:F7:B5:1E:95:7A:DC:97:AF:1E:11:9D
+                DirName:/C=GB/ST=England/L=Cambridge/O=University of Cambridge/OU=Computer Laboratory/CN=TLS rootca CAMB/emailAddress=carlos.molina@cl.cam.ac.uk
+                serial:50:00
+
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+Certificate is to be certified until Sep 11 21:09:18 2024 GMT (375 days)
+Sign the certificate? [y/n]:y
+
+
+1 out of 1 certificate requests certified, commit? [y/n]y
+Write out database with 1 new entries
+Data Base Updated
+bash-3.2$ 
+
+
+
+
+/*
+ **********************************************
+ ********  client cert ****************
+ **********************************************
+
+
+/*************
+11) Generate the priv key of the client 
+**************/
+
+bash-3.2$ openssl genrsa -aes256 -out intermediate/private/client.key.pem 2048
+Generating RSA private key, 2048 bit long modulus
+........................................................................+++
+................................................................................+++
+e is 65537 (0x10001)
+Enter pass phrase for intermediate/private/client.key.pem:
+Verifying - Enter pass phrase for intermediate/private/client.key.pem:
+bash-3.2$ 
+
+
+
+/*************
+12) Generate a sign request to sing the client's certificate 
+**************/
+
+bash-3.2$ openssl req -config intermediate/openssl.cfg -key intermediate/private/client.key.pem -new -sha256 -out intermediate/csr/client.csr.pem
+Enter pass phrase for intermediate/private/client.key.pem:
+ /*
+  * sxxxxxxx
+  */
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:
+State or Province Name [England]:
+Locality Name [Cambridge]:
+Organization Name [University of Cambridge]:
+Organizational Unit Name [Computer Laboratory]:
+Common Name []:TLS client CAMB
+Email Address [carlos.molina@cl.cam.ac.uk]:
+bash-3.2$ 
+
+
+
+
+/*************
+13) Sign the client's certificate, using the intermediate certificate 
+**************/
+bash-3.2$ openssl ca -config intermediate/openssl.cfg -extensions usr_cert -days 375 -notext -md sha256 -in intermediate/csr/client.csr.pem -out intermediate/certs/client.cert.pem
+Using configuration from intermediate/openssl.cfg
+Enter pass phrase for ./intermediate/private/intermediate.key.pem:
+Check that the request matches the signature
+Signature ok
+Certificate Details:
+        Serial Number: 20481 (0x5001)
+        Validity
+            Not Before: Sep  2 21:18:41 2023 GMT
+            Not After : Sep 11 21:18:41 2024 GMT
+        Subject:
+            countryName               = GB
+            stateOrProvinceName       = England
+            localityName              = Cambridge
+            organizationName          = University of Cambridge
+            organizationalUnitName    = Computer Laboratory
+            commonName                = TLS client CAMB
+            emailAddress              = carlos.molina@cl.cam.ac.uk
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Cert Type: 
+                SSL Client, S/MIME
+            Netscape Comment: 
+                OpenSSL Generated Client Certificate
+            X509v3 Subject Key Identifier: 
+                B5:BD:A8:09:DE:01:84:46:32:42:42:9A:0D:31:66:64:75:5C:6E:8F
+            X509v3 Authority Key Identifier: 
+                keyid:BF:98:79:C5:43:31:2F:7A:68:F7:B5:1E:95:7A:DC:97:AF:1E:11:9D
+
+            X509v3 Key Usage: critical
+                Digital Signature, Non Repudiation, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Client Authentication, E-mail Protection
+Certificate is to be certified until Sep 11 21:18:41 2024 GMT (375 days)
+Sign the certificate? [y/n]:y
+
+
+1 out of 1 certificate requests certified, commit? [y/n]y
+Write out database with 1 new entries
+Data Base Updated
+bash-3.2$ 
+
+
+
+/*************
+14)  Create a certificate chain for the server's certificate 
+     I copied server.cert.pem and intermediate.cert.pem
+     to the same directory. I found the in
+**************/
+
+/Users/carlosmolina/code/python/ca_selfsign/intermediate/certs
+bash-3.2$ ls -l
+total 24
+-rw-r--r--  1 carlosmolina  staff  2017  2 Sep 22:18 client.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2232  2 Sep 22:01 intermediate.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  2 Sep 22:09 server.cert.pem
+bash-3.2$ 
+
+
+
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/pb/reso/server
+bash-3.2$ 
+
+a) I created server.intermediate.chain.pem by means of
+   concatenation. The concatenation order is relevant
+   It is explained in Certificate chain section of
+   https://docs.python.org/3/library/ssl.html
+
+bash-3.2$ cat server.cert.pem >> server.intermediate.chain.pem
+bash-3.2$ cat intermediate.cert.pem >> server.intermediate.chain.pem
+
+
+/*************
+15)  Create a certificate chain for the client's certificate 
+     I copied client.cert.pem and intermediate.cert.pem
+     to the same directory
+     I copied client.cert.pem and intermediate.cert.pem
+     to the same directory. I found the in
+**************/
+
+/Users/carlosmolina/code/python/ca_selfsign/intermediate/certs
+bash-3.2$ ls -l
+total 24
+-rw-r--r--  1 carlosmolina  staff  2017  2 Sep 22:18 client.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2232  2 Sep 22:01 intermediate.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  2 Sep 22:09 server.cert.pem
+bash-3.2$ 
+
+
+a) I created server.intermediate.chain.pem by means of
+   concatenation. The concatenation order is relevant
+   It is explained in Certificate chain section of
+   https://docs.python.org/3/library/ssl.html
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/pb/reso/client
+bash-3.2$ ls
+client.cert.pem		client.key.pem		intermediate.cert.pem	rootca.cert.pem
+bash-3.2$ cat client.cert.pem >> client.intermediate.chain.pem
+bash-3.2$ cat intermediate.cert.pem >> client.intermediate.chain.pem
+bash-3.2$ 
+
+
+
+/*
+ *********************************
+ * testing with excercise 2
+ * https://github.com/mikepound/tls-exercises/tree/master
+ *********************************
+ */
+
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/pb/ex2
+bash-3.2$ ls -l
+total 56
+-rw-r--r--@ 1 carlosmolina  staff  1489  2 Sep 22:41 ccc.py
+-rw-r--r--@ 1 carlosmolina  staff  3332  2 Sep 22:39 sss.py
+bash-3.2$ 
+
+
+
+bash-3.2$ py sss.py
+Enter PEM pass phrase:
+      /*
+       * sxxxxxxx
+       */
+Listening on port 8383...
+Received from client: GET /index.html HTTP/1.1
+
+
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/pb/ex2
+bash-3.2$ py ccc.py
+Enter PEM pass phrase:
+      /*
+       * sxxxxxxx
+       */
+Negotiated session using cipher suite: TLS_AES_256_GCM_SHA384
+
+HTTP/1.0 200 OK
+Content-type: text/html
+<html>
+  <head>
+    <title>Tiny Website</title>
+  </head>
+  <body>
+    A very small website!
+  </body>
+</html>
+
+

@@ -2,6 +2,9 @@
 title           : ser_send_recv_file.py
 description     : Is a server that establishes a secure chan over ssl
                 : with a client. 
+                : I created the self-signed certificates following the steps
+                : https://github.com/mikepound/tls-exercises/tree/master/ca
+                :
                 : 1) It listen for a connection request from a 
                 :    client.
                 : 2) Accepts the request and receives a file.
@@ -18,8 +21,8 @@ description     : Is a server that establishes a secure chan over ssl
 source          : https://github.com/mikepound/tls-exercises
                 : 
 author          : Carlos Molina Jimenez
-date            : 5 Aug 2023
-version         : 1.0
+date            : 3 Sep 2023
+version         : __
 usage           : 
 notes           :
 compile and run : % python3 ser_send_recv_file.py filename2send
@@ -53,9 +56,9 @@ from files2sockets import read_send_file, recv_store_file
 
 LOCAL_HOST = 'localhost'
 LOCAL_PORT = 8282
-RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'resources' / 'server'
-SERVER_CERT_CHAIN = RESOURCE_DIRECTORY / 'server.intermediate.chain.pem'
-SERVER_KEY = RESOURCE_DIRECTORY / 'server.key.pem'
+RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'reso' / 'server'
+SERVER_CERT_CHAIN = RESOURCE_DIRECTORY / 'bobServer.intermediate.chain.pem'
+SERVER_KEY = RESOURCE_DIRECTORY / 'bobServer.key.pem'
 
 
 # three new lines 

@@ -4,27 +4,23 @@ description     : A client (Alice's) that sends a connection request
                 : to a server, upon acceptance, the client sends
                 : a request: either post s_A or retrieve.
                 :
+                : I created the self-signed certificates following the steps
+                : https://github.com/mikepound/tls-exercises/tree/master/ca
+                :
 source          : https://pythonprogramming.net/pickle-objects-
                 : sockets-tutorial-python-3/ 
                 : 
 author          : Carlos Molina-Jimenez,
                 : carlos.molina@cl.cam.ac.uk
-date            : 26 Jul 2023, Computer Lab, University of Cambridge
-version         : 1.0
+date            : 3 Sep 2023, Computer Lab, University of Cambridge
+version         : __ 
 usage           : 
 notes           :
-compile and run : % python3 serPBB.py  on a window shell
+compile and run : % python3 serPBB.py             on a window shell
                 : % python3 cliPBB.py  on another window shell
                 :
                 : % python3 cliPBB.py -r post -t s_A
                 : % python3 cliPBB.py -r retrieve
-                :
-                : It can also be called by test_ClientPBB.py
-                : To run a Alice's client (called cliA) type
-                : % python3 test_ClientPBB.py -c cliA -r post -t s_A
-                :
-                : To run a Bob's client (called cliB) type
-                : % python3 test_ClientPBB.py -c cliA -r post -t s_A
                 :
 python_version  : Python 3.7.4(v3.7.4:e09359112e, Jul 8 2019, 14:36:03) 
                 :
@@ -40,13 +36,10 @@ import os
 import argparse
 import pickle
 
-
-from files2sockets import verify_signature
-
 LOCAL_HOST = "localhost"
 LOCAL_PORT = 8282
-RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'resources' / 'client'
-CA_CERT = RESOURCE_DIRECTORY / 'ca.cert.pem'
+RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'certskeys' / 'client'
+CA_CERT = RESOURCE_DIRECTORY / 'rootca.cert.pem'
 
 
 BUFFER_SIZE = 1024 * 4 #4KB
@@ -77,7 +70,8 @@ class ClientPBB():
      context.load_verify_locations(CA_CERT)
 
      # We can wrap in an SSL context first, then connect
-     self.conn= context.wrap_socket(self.soc, server_hostname="Expert TLS Server")
+     #self.conn= context.wrap_socket(self.soc, server_hostname="Expert TLS Server")
+     self.conn= context.wrap_socket(self.soc, server_hostname="PBB server CAMB")
 
      ## OK 27Jul2023 return(self.conn.connect((ser, port)))
      return(self.conn.connect((self.server, self.port)))
@@ -168,16 +162,8 @@ class ClientPBB():
              print(pickle.loads(full_msg[hdsize:]))
              list=pickle.loads(full_msg[hdsize:])
              print("Msg received from server: ")
-             # [token1, token2, ...,signature, vk]
              for i in range(0, len(list)):
                  print("[", i, "]=", list[i])
-             if verify_signature(list)==True:
-                print("Actual tokens received from server: ")
-                for i in range(0, len(list)):
-                    print("[", i, "]=", list[i])
-             else: 
-                raise Exception("Signature verification on tokens failed!")
-
              new_msg = True
              full_msg = b""
              full_msg_rcvd="YES"
