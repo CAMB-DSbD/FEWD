@@ -1,7 +1,8 @@
 """
 title           : cli_send_recv_file.py 
 description     : Is a client that establishes a secure chan over ssl
-                : with a server. 
+                : with a server if mutual authentication succeeds.
+                :
                 : I created the self-signed certificates following the steps
                 : https://github.com/mikepound/tls-exercises/tree/master/ca
                 :
@@ -54,11 +55,16 @@ HEADERSIZE= 10
 RECV_FILE_NAME_PREFIX= "fuchi_fromSer_"
 
 
-
 LOCAL_HOST = 'localhost'
 LOCAL_PORT = 8282
-RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'reso' / 'client'
+RESOURCE_DIRECTORY = Path(__file__).resolve().parent.parent / 'certskeys' / 'client'
+CLIENT_CERT_CHAIN = RESOURCE_DIRECTORY / 'aliceClient.intermediate.chain.pem'
+CLIENT_KEY = RESOURCE_DIRECTORY / 'aliceClient.key.pem'
 CA_CERT = RESOURCE_DIRECTORY / 'rootca.cert.pem'
+
+
+
+
 
 
 class SSLclientfile():
@@ -70,7 +76,7 @@ class SSLclientfile():
   self.headersize= HEADERSIZE 
   self.soc= None
   self.conn= None
-  print(self.clientname, " has been created!")
+  print("\n", self.clientname, " wants to run... Its PEM pass phrase is: camb\n")
 
 
  def sockconnect(self, ser="localhost", port=8282):
@@ -81,12 +87,13 @@ class SSLclientfile():
 
      # Create a standard TCP Socket
      # Create SSL context which holds the parameters for any sessions
-     context= ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-     context.check_hostname= False
+     context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
      context.load_verify_locations(CA_CERT)
+     context.load_cert_chain(certfile=CLIENT_CERT_CHAIN, keyfile=CLIENT_KEY)
+
 
      # We can wrap in an SSL context first, then connect
-     self.conn= context.wrap_socket(self.soc, server_hostname="Expert TLS Server")
+     self.conn= context.wrap_socket(self.soc, server_hostname="bob Server CAMB")
 
      ## OK 27Jul2023 return(self.conn.connect((ser, port)))
      return(self.conn.connect((self.server, self.port)))

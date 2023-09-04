@@ -1,7 +1,8 @@
 """
 title           : ser_send_recv_file.py
 description     : Is a server that establishes a secure chan over ssl
-                : with a client. 
+                : with a client if mutual authentication succeeds.
+                :
                 : I created the self-signed certificates following the steps
                 : https://github.com/mikepound/tls-exercises/tree/master/ca
                 :
@@ -56,7 +57,7 @@ from files2sockets import read_send_file, recv_store_file
 
 LOCAL_HOST = 'localhost'
 LOCAL_PORT = 8282
-RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'reso' / 'server'
+RESOURCE_DIRECTORY = Path(__file__).resolve().parent.parent / 'certskeys' / 'server'
 SERVER_CERT_CHAIN = RESOURCE_DIRECTORY / 'bobServer.intermediate.chain.pem'
 SERVER_KEY = RESOURCE_DIRECTORY / 'bobServer.key.pem'
 
@@ -76,6 +77,7 @@ class SSLserverfile():
         """
         Creates an SSLContext which provides parameters for any future SSL connections
         """
+        print("\nBob's server running... Its PEM pass phrase is: camb\n")
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         context.load_cert_chain(certfile=SERVER_CERT_CHAIN, keyfile=SERVER_KEY)
 
