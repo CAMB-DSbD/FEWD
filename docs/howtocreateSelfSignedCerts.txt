@@ -10,14 +10,19 @@
  * It is based (nearly copied and psted) on 
  * https://github.com/mikepound/tls-exercises/tree/master/ca
  *
- * 1) I created the certtificate (rootca.cert.pem)
+ * 1) I created the certificate (rootca.cert.pem)
+ *
  * 2) I created an intermediate certificate (intermediate.cert.pem) 
+ *
  * 3) I used rootca.cert.pem for signing intermediate.cert.pem
+ *
  * 4) I created a server and a client certificate
  *    server.cert.pem and client.cert.pem
- * 4) I used intermediate.cert.pem to sign the server and client
+ *
+ * 5) I used intermediate.cert.pem to sign the server and client
  *    certificate.
- * 5) I created a certificate chain for the server and the
+ *
+ * 6) I created a certificate chain for the server and the
  *    client certificate: server.intermediate.chain.pem and
  *                        client.intermediate.chain.pem
  *
@@ -56,6 +61,104 @@ bash-3.2$ pwd
 bash-3.2$ 
 
 
+a) I copied the structure (subfolders and files) from
+ * https://github.com/mikepound/tls-exercises/tree/master/ca
+
+
+bash-3.2$ ls -l
+total 64
+-rw-r--r--@  1 carlosmolina  staff  10018 23 Jan  2023 README.md
+drwxr-xr-x@  3 carlosmolina  staff     96  7 Sep 01:45 certs/
+-rw-r--r--@  1 carlosmolina  staff     96 23 Jan  2023 index.txt
+-rw-r--r--@  1 carlosmolina  staff     21 23 Jan  2023 index.txt.attr
+drwxr-xr-x@ 12 carlosmolina  staff    384  1 Sep 16:16 intermediate/
+drwxr-xr-x@  2 carlosmolina  staff     64  7 Sep 01:45 newcerts/
+-rw-r--r--@  1 carlosmolina  staff   4201 23 Jan  2023 openssl.cfg
+drwxr-xr-x@  2 carlosmolina  staff     64  7 Sep 01:45 private/
+-rw-r--r--@  1 carlosmolina  staff      5 23 Jan  2023 serial
+
+
+
+
+b) The folder contains keys (*.pem) and certificates (*.crt).
+   After deleting them:
+
+bash-3.2$ ls -l
+total 64
+-rw-r--r--@  1 carlosmolina  staff  10018 23 Jan  2023 README.md
+drwxr-xr-x@  3 carlosmolina  staff     96  7 Sep 01:45 certs/
+-rw-r--r--@  1 carlosmolina  staff     96 23 Jan  2023 index.txt
+-rw-r--r--@  1 carlosmolina  staff     21 23 Jan  2023 index.txt.attr
+drwxr-xr-x@ 12 carlosmolina  staff    384  1 Sep 16:16 intermediate/
+drwxr-xr-x@  2 carlosmolina  staff     64  7 Sep 01:45 newcerts/
+-rw-r--r--@  1 carlosmolina  staff   4201 23 Jan  2023 openssl.cfg
+drwxr-xr-x@  2 carlosmolina  staff     64  7 Sep 01:45 private/
+-rw-r--r--@  1 carlosmolina  staff      5 23 Jan  2023 serial
+bash-3.2$ 
+bash-3.2$ 
+bash-3.2$ ls -lR
+total 64
+-rw-r--r--@  1 carlosmolina  staff  10018 23 Jan  2023 README.md
+drwxr-xr-x@  3 carlosmolina  staff     96  7 Sep 01:45 certs/
+-rw-r--r--@  1 carlosmolina  staff     96 23 Jan  2023 index.txt
+-rw-r--r--@  1 carlosmolina  staff     21 23 Jan  2023 index.txt.attr
+drwxr-xr-x@ 12 carlosmolina  staff    384  1 Sep 16:16 intermediate/
+drwxr-xr-x@  2 carlosmolina  staff     64  7 Sep 01:45 newcerts/
+-rw-r--r--@  1 carlosmolina  staff   4201 23 Jan  2023 openssl.cfg
+drwxr-xr-x@  2 carlosmolina  staff     64  7 Sep 01:45 private/
+-rw-r--r--@  1 carlosmolina  staff      5 23 Jan  2023 serial
+
+./certs:
+total 8
+-rw-r--r--@ 1 carlosmolina  staff  2053 23 Jan  2023 ca.cert.cer
+
+./intermediate:
+total 48
+drwxr-xr-x@ 2 carlosmolina  staff    64  7 Sep 01:46 certs/
+-rw-r--r--@ 1 carlosmolina  staff     4 23 Jan  2023 crlnumber
+drwxr-xr-x@ 2 carlosmolina  staff    64  7 Sep 01:45 csr/
+-rw-r--r--@ 1 carlosmolina  staff   393 23 Jan  2023 index.txt
+-rw-r--r--@ 1 carlosmolina  staff    22 23 Jan  2023 index.txt.attr
+drwxr-xr-x@ 2 carlosmolina  staff    64  7 Sep 01:45 newcerts/
+-rw-r--r--@ 1 carlosmolina  staff  4264 23 Jan  2023 openssl.cfg
+drwxr-xr-x@ 2 carlosmolina  staff    64  7 Sep 01:45 private/
+-rw-r--r--@ 1 carlosmolina  staff     6 23 Jan  2023 serial
+
+./intermediate/certs:
+./intermediate/csr:
+./intermediate/newcerts:
+./intermediate/private:
+./newcerts:
+./private:
+bash-3.2$ 
+
+
+c) I deleted the content of the two index.txt files to
+   left the files empty. 
+
+
+d) I deleted the contents of the serial files:
+   - I edited ./serial to include 2000
+   - I edited ./intermediate/serial to include 5000
+   2000 and 5000 are arbitrary values that I chose
+   as initial serial numbers for certificates signed
+   by root ca and internediate ca, respectively. 
+
+e) I copied ./intermediate/openssl.cfg to ./openssl.cnf
+
+f) ./openssl.cnf and ./intermediate/openssl.cfn
+   include some default values used by the
+   original author (Mike Pound)
+   https://github.com/mikepound/tls-exercises/tree/master/ca
+
+   I edited the files to change the defaults to my own 
+   parameters, for example, I changed 
+   organizationalUnitName_default  = IT Training
+   to
+   0.organizationName_default      = University of Cambridge
+
+
+
 /*************
 2) Generate priv key for the root ca authority
 **************/
@@ -67,7 +170,7 @@ e is 65537 (0x10001)
 Enter pass phrase for private/rootca.key.pem:
 Verifying - Enter pass phrase for private/rootca.key.pem:
    /*
-    * xxxxxxxxo
+    * xxxxxxxxo  <-- chose your own pass phrase
     */
 bash-3.2$ 
 
