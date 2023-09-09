@@ -1,0 +1,4 @@
+This file (helloServer.txt) is taken by default by the 
+test_SSLclientfile.py to send to the server in response 
+to file exchange.
+6 Aug 2023, Carlos Molina Jimenez
