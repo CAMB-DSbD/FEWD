@@ -14,22 +14,22 @@ source          :
 author          : Carlos Molina-Jimenez
                 : carlos.molina@cl.cam.ac.uk
                 : 2 Sep 2023, Computer Lab, University of Cambridge
-date            : 3 Sep 2023
+date            : 9 Sep 2023
 version         : __ 
                 : Save to file and sign of responses not
                 : implemented yet. 
 usage           : 
 notes           :
 compile and run : % python3 serPBB.py 
-                : The program expects ca.cert in ./resources/server, 
+                : The program expects rootca.cert in ../certskeys, 
                 : that is, in a folder called client located in the
                 : parent folder.
                 :
                 : % python3 serPBB.p
-                : PBB Server listening on port 8282...
+                : PBB Server listening on port 8285...
                 : 
-                : % python3 serPBB.py -s localhost -p 8280
-                : PBB Server listening on port 8280...
+                : % python3 serPBB.py -s localhost -p 8285
+                : PBB Server listening on port 8285...
                 :
 python_version  : Python 3.7.4 (v3.7.4:e09359112e, Jul 8 2019)      
 """
@@ -48,9 +48,12 @@ import pickle
 from files2sockets import recvpicklemsg, sendpicklemsg
 
 
-LOCAL_HOST = 'localhost'
-LOCAL_PORT = 8282
-RESOURCE_DIRECTORY = Path(__file__).resolve().parent / 'certskeys' / 'server'
+#LOCAL_HOST = 'localhost'
+#LOCAL_PORT = 8282
+LOCAL_PORT = 8285
+SERVER_NAME= "morello-camb-2.sm.cl.cam.ac.uk"
+
+RESOURCE_DIRECTORY = Path(__file__).resolve().parent.parent / 'certskeys' / 'server'
 SERVER_CERT_CHAIN = RESOURCE_DIRECTORY / 'pbbServer.intermediate.chain.pem'
 SERVER_KEY = RESOURCE_DIRECTORY / 'pbbServer.key.pem'
 
@@ -62,7 +65,7 @@ BUFFER_SIZE = 4096
 
 class ServerPBB():
 
-    def __init__(self, server=LOCAL_HOST, port=LOCAL_PORT):
+    def __init__(self, server=SERVER_NAME, port=LOCAL_PORT):
         """
         Creates an SSLContext: provides params for any future SSL connections
         """
@@ -124,12 +127,9 @@ class ClientHandler(threading.Thread):
         try:
             # Read up to 4x1024 bytes from the client
 
-            print("Ser: hiiiiiiiiiiiiiiii before calling recvpicklemsg")
             list= recvpicklemsg(self.conn, 10)
-            print("Ser: heeee after calling recvpicklemsg")
             
             sendpicklemsg(self.conn, list, 10, self.pbbrecrds)
-            print("heeee after calling sendpicklemsg")
 
         except ssl.SSLError as e:
             print(e)
@@ -137,14 +137,14 @@ class ClientHandler(threading.Thread):
             print(e)
         finally:
             self.conn.close()
-            print("ser_PBB.py waiting for requests ...")
+            print("PBB server PBB waiting for requests .....")
 
 
 def main():
    import argparse
    parser = argparse.ArgumentParser(description="A server implementing a PBB with sec chan")
-   parser.add_argument("-s", "--server", help="Server implementing the PBB, default is local host", default= "localhost")
-   parser.add_argument("-p", "--port", help="Port to use, default is 8282", default=8282)
+   parser.add_argument("-s", "--server", help="Server implementing the PBB, default is morello-camb-2.sm.cl.cam.ac.uk", default= "morello-camb-5.sm.cl.cam.ac.uk")
+   parser.add_argument("-p", "--port", help="Port to use, default is 8285", default=8285)
 
    args    = parser.parse_args()
    server  = args.server
