@@ -1,0 +1,448 @@
+/*
+ * Programmer: Carlos Molina-Jimenez
+ *             carlos.molina@cl.cam.ac.uk
+ *             14 Sep 2024
+ *
+ *
+ * Institution: Computer Laboratory, University of Cambridge
+ *             
+ * I use these steps to renew self-signed certificates for 
+ * a server and a client: bobServ and aliceCli 
+ *                        
+ * It is signed by intermediate intermediate.cert.pem
+ * that I already have (i created it last year).
+ * The server's and client's certs created for 365
+ * days client have expired.
+ *
+ * certs cannot be renewed (openssl displays an error): new certs 
+ *       need to be created under different names.
+ *
+ * The steps are based (nearly copied and psted) on 
+ * https://github.com/mikepound/tls-exercises/tree/master/ca
+ * I executed these steps to create a certificate
+ * for a server called PBBserver. The cert that I created in Sep 
+ * 2023  expired on 12 Sep 2024.
+ *
+ * These steps complement the procedure explained in 
+ *
+ * https://github.com/CAMB-DSbD/FEWD/blob/main/docs/howtocreateSelfSignedCerts.txt
+ *
+ * except that here I reuse the the intermediate.cert.pem 
+ * authority that I created in sep 2023: see
+ * step 3 and 5. 
+ * intermidiate.cert.pem is signed by root ca authority
+ * and is valid till  2033
+ *
+ *
+ */
+
+
+a) I have macOS Big Sur version 11.7.10
+
+b) I have openssl
+
+bash-3.2$ openssl version
+OpenSSL 3.3.1 4 Jun 2024 (Library: OpenSSL 3.3.1 4 Jun 2024)
+bash-3.2$ 
+
+
+c) I have a valid intermediate.cert.pem
+
+  bash-3.2$ pwd
+  /Users/carlosmolina/code/python/ca_selfsign
+ 
+  bash-3.2$ find . -name intermediate.cert.pem -print
+   ./intermediate/certs/intermediate.cert.pem
+ 
+  bash-3.2$ openssl x509 -enddate -noout -in ./intermediate/certs/intermediate.cert.pem
+  notAfter=Aug 30 21:00:53 2033 GMT
+   
+  bash-3.2$ pwd
+  /Users/carlosmolina/code/python/ca_selfsign
+ 
+
+
+
+
+/********************* bobServ *********************/
+ ***************************************************
+1) generate private key for bobServ
+
+bash-3.2$ openssl genrsa -aes256 -out intermediate/private/bobServ.key.pem 2048
+Enter PEM pass phrase:
+  /*
+   *
+   * camb
+   *
+   */
+
+Verifying - Enter PEM pass phrase:
+  /*
+   *
+   * camb
+   *
+   */
+
+
+
+
+2) generate request to sing the bobServ certificate with
+   ./intermediate/certs/intermediate.cert.pem
+
+bash-3.2$ openssl req -config intermediate/openssl.cfg -key intermediate/private/bobServ.key.pem -new -sha256 -out intermediate/csr/bobServ.csr.pem
+Enter pass phrase for intermediate/private/bobServ.key.pem:
+  /*
+   *
+   * camb
+   *
+   */
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:
+State or Province Name [England]:
+Locality Name [Cambridge]:
+Organization Name [University of Cambridge]:
+Organizational Unit Name [Computer Laboratory]:
+Common Name []:bob serv CAMB
+Email Address [carlos.molina@cl.cam.ac.uk]:
+bash-3.2$ 
+
+
+
+3) sign the bobServ certificate with
+   ./intermediate/certs/intermediate.cert.pem
+
+bash-3.2$ openssl ca -config intermediate/openssl.cfg -extensions server_cert -days 3650 -notext -md sha256 -in intermediate/csr/bobServ.csr.pem -out intermediate/certs/bobServ.cert.pem
+Using configuration from intermediate/openssl.cfg
+Enter pass phrase for ./intermediate/private/intermediate.key.pem:
+ /*
+  *
+  * marco
+  *
+  */
+Check that the request matches the signature
+Signature ok
+Certificate Details:
+        Serial Number: 20489 (0x5009)
+        Validity
+            Not Before: Sep 14 15:09:35 2024 GMT
+            Not After : Sep 12 15:09:35 2034 GMT
+        Subject:
+            countryName               = GB
+            stateOrProvinceName       = England
+            localityName              = Cambridge
+            organizationName          = University of Cambridge
+            organizationalUnitName    = Computer Laboratory
+            commonName                = bob serv CAMB
+            emailAddress              = carlos.molina@cl.cam.ac.uk
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Cert Type: 
+                SSL Server
+            Netscape Comment: 
+                OpenSSL Generated Server Certificate
+            X509v3 Subject Key Identifier: 
+                0B:0B:4A:8F:22:91:97:5C:C1:39:F1:C0:97:23:65:CD:49:F0:F6:42
+            X509v3 Authority Key Identifier: 
+                keyid:BF:98:79:C5:43:31:2F:7A:68:F7:B5:1E:95:7A:DC:97:AF:1E:11:9D
+                DirName:/C=GB/ST=England/L=Cambridge/O=University of Cambridge/OU=Computer Laboratory/CN=TLS rootca CAMB/emailAddress=carlos.molina@cl.cam.ac.uk
+                serial:50:00
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+Certificate is to be certified until Sep 12 15:09:35 2034 GMT (3650 days)
+Sign the certificate? [y/n]:y
+
+
+1 out of 1 certificate requests certified, commit? [y/n]y
+Write out database with 1 new entries
+Database updated
+
+
+
+
+4)  bobSer have been created
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/ca_selfsign
+bash-3.2$ ls -l ./intermediate/certs
+total 88
+-rw-r--r--  1 carlosmolina  staff  2017  3 Sep  2023 aliceClient.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2285 10 Sep  2023 attAlice.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2281 10 Sep  2023 attBob.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  3 Sep  2023 bobClient.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2273 14 Sep 16:09 bobServ.cert.pem
+-rw-r--r--@ 1 carlosmolina  staff  2277  3 Sep  2023 bobServer.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  2 Sep  2023 client.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2232  2 Sep  2023 intermediate.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2273 13 Sep 23:40 pbbServ.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  3 Sep  2023 pbbServer.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  2 Sep  2023 server.cert.pem
+bash-3.2$ 
+
+
+
+
+
+/********************* aliceCli *********************/
+ ***************************************************
+
+1) generate private key for aliceCli
+
+bash-3.2$ openssl genrsa -aes256 -out intermediate/private/aliceCli.key.pem
+Enter PEM pass phrase:
+  /*
+   *
+   * camb
+   *
+   */
+Verifying - Enter PEM pass phrase:
+  /*
+   *
+   * camb
+   *
+   */
+
+
+
+2) generate request to sing aliceCli with intermediate.cert.pem
+
+bash-3.2$ openssl req -config intermediate/openssl.cfg -key intermediate/private/aliceCli.key.pem -new -sha256 -out intermediate/csr/aliceCli.csr.pem
+Enter pass phrase for intermediate/private/aliceCli.key.pem:
+  /*
+   *
+   * camb
+   *
+   */
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:
+State or Province Name [England]:
+Locality Name [Cambridge]:
+Organization Name [University of Cambridge]:
+Organizational Unit Name [Computer Laboratory]:
+Common Name []:alice cli CAMB
+Email Address [carlos.molina@cl.cam.ac.uk]:
+
+
+3) sing aliceCli with intermediate.cert.pem
+
+bash-3.2$ openssl ca -config intermediate/openssl.cfg -extensions usr_cert -days 3750 -notext -md sha256 -in intermediate/csr/aliceCli.csr.pem -out intermediate/certs/aliceCli.cert.pem
+Using configuration from intermediate/openssl.cfg
+Enter pass phrase for ./intermediate/private/intermediate.key.pem:
+Check that the request matches the signature
+Signature ok
+Certificate Details:
+        Serial Number: 20490 (0x500a)
+        Validity
+            Not Before: Sep 14 15:27:04 2024 GMT
+            Not After : Dec 21 15:27:04 2034 GMT
+        Subject:
+            countryName               = GB
+            stateOrProvinceName       = England
+            localityName              = Cambridge
+            organizationName          = University of Cambridge
+            organizationalUnitName    = Computer Laboratory
+            commonName                = alice cli CAMB
+            emailAddress              = carlos.molina@cl.cam.ac.uk
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Cert Type: 
+                SSL Client, S/MIME
+            Netscape Comment: 
+                OpenSSL Generated Client Certificate
+            X509v3 Subject Key Identifier: 
+                33:5B:28:78:B9:A6:1E:B9:95:9E:9B:D6:F0:48:7B:84:B5:6C:5F:F7
+            X509v3 Authority Key Identifier: 
+                BF:98:79:C5:43:31:2F:7A:68:F7:B5:1E:95:7A:DC:97:AF:1E:11:9D
+            X509v3 Key Usage: critical
+                Digital Signature, Non Repudiation, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Client Authentication, E-mail Protection
+Certificate is to be certified until Dec 21 15:27:04 2034 GMT (3750 days)
+Sign the certificate? [y/n]:y
+
+
+1 out of 1 certificate requests certified, commit? [y/n]y
+Write out database with 1 new entries
+Database updated
+bash-3.2$ 
+
+
+4) aliceCli.cert.pem has been created
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/ca_selfsign
+bash-3.2$ ls -l intermediate/certs
+total 96
+-rw-r--r--  1 carlosmolina  staff  2013 14 Sep 16:27 aliceCli.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  3 Sep  2023 aliceClient.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2285 10 Sep  2023 attAlice.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2281 10 Sep  2023 attBob.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  3 Sep  2023 bobClient.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2273 14 Sep 16:09 bobServ.cert.pem
+-rw-r--r--@ 1 carlosmolina  staff  2277  3 Sep  2023 bobServer.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  2 Sep  2023 client.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2232  2 Sep  2023 intermediate.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2273 13 Sep 23:40 pbbServ.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  3 Sep  2023 pbbServer.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  2 Sep  2023 server.cert.pem
+bash-3.2$ 
+
+
+
+
+
+/************  copying cert and creating trust chains ********/
+***************************************************************
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/ca_selfsign/intermediate/certs
+
+
+bash-3.2$ ls -l
+total 96
+-rw-r--r--  1 carlosmolina  staff  2013 14 Sep 16:27 aliceCli.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  3 Sep  2023 aliceClient.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2285 10 Sep  2023 attAlice.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2281 10 Sep  2023 attBob.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  3 Sep  2023 bobClient.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2273 14 Sep 16:09 bobServ.cert.pem
+-rw-r--r--@ 1 carlosmolina  staff  2277  3 Sep  2023 bobServer.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  2 Sep  2023 client.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2232  2 Sep  2023 intermediate.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2273 13 Sep 23:40 pbbServ.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  3 Sep  2023 pbbServer.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  2 Sep  2023 server.cert.pem
+
+
+
+bash-3.2$ cp bobServ.cert.pem /Users/carlosmolina/code/python/certskeys/server
+
+
+bash-3.2$ cp aliceCli.cert.pem /Users/carlosmolina/code/python/certskeys/client
+
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/certskeys/server
+bash-3.2$ 
+
+bash-3.2$ ls -l
+total 216
+-rw-r--r--  1 carlosmolina  staff  2285 10 Sep  2023 attAlice.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4517 10 Sep  2023 attAlice.intermediate.chain.pem
+-rw-r--r--  1 carlosmolina  staff  1766 10 Sep  2023 attAlice.key.pem
+-rw-r--r--  1 carlosmolina  staff  2281 10 Sep  2023 attBob.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4513 10 Sep  2023 attBob.intermediate.chain.pem
+-rw-r--r--  1 carlosmolina  staff  1766 10 Sep  2023 attBob.key.pem
+-rw-r--r--  1 carlosmolina  staff  2273 14 Sep 16:39 bobServ.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  3 Sep  2023 bobServer.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4509  3 Sep  2023 bobServer.intermediate.chain.pem
+-rw-r--r--  1 carlosmolina  staff  1766  3 Sep  2023 bobServer.key.pem
+-rw-r--r--  1 carlosmolina  staff  2232  2 Sep  2023 intermediate.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2273 14 Sep 01:01 pbbServ.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4505 14 Sep 01:07 pbbServ.intermediate.chain.pem
+-rw-------  1 carlosmolina  staff  1886 14 Sep 00:29 pbbServ.key.pem
+-rw-r--r--  1 carlosmolina  staff  2277  3 Sep  2023 pbbServer.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4509  3 Sep  2023 pbbServer.intermediate.chain.pem
+-rw-r--r--@ 1 carlosmolina  staff  1766  3 Sep  2023 pbbServer.key.pem
+-rw-r--r--  1 carlosmolina  staff  2260  2 Sep  2023 rootca.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2277  2 Sep  2023 server.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4509  2 Sep  2023 server.intermediate.chain.pem
+-rw-r--r--  1 carlosmolina  staff  1766  2 Sep  2023 server.key.pem
+
+
+
+
+/*
+ *  trust chain for bobSer.pem cert
+ */
+bash-3.2$ cat bobServ.cert.pem > bobServ.intermediate.chain.pem
+bash-3.2$ 
+bash-3.2$ cat intermediate.cert.pem >> bobServ.intermediate.chain.pem
+bash-3.2$ 
+
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/certskeys/client
+bash-3.2$ ls -l
+total 120
+-rw-r--r--  1 carlosmolina  staff  2013 14 Sep 16:41 aliceCli.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2017  3 Sep  2023 aliceClient.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4249  3 Sep  2023 aliceClient.intermediate.chain.pem
+-rw-r--r--  1 carlosmolina  staff  1766  3 Sep  2023 aliceClient.key.pem
+-rw-r--r--  1 carlosmolina  staff  2017  3 Sep  2023 bobClient.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4249  3 Sep  2023 bobClient.intermediate.chain.pem
+-rw-r--r--  1 carlosmolina  staff  1766  3 Sep  2023 bobClient.key.pem
+-rw-r--r--  1 carlosmolina  staff  2017  2 Sep  2023 client.cert.pem
+-rw-r--r--  1 carlosmolina  staff  4249  2 Sep  2023 client.intermediate.chain.pem
+-rw-r--r--  1 carlosmolina  staff  1766  2 Sep  2023 client.key.pem
+-rw-r--r--  1 carlosmolina  staff  2232  2 Sep  2023 intermediate.cert.pem
+-rw-r--r--  1 carlosmolina  staff  2260  2 Sep  2023 rootca.cert.pem
+
+
+/*
+ *  trust chain for aliceCli.pem cert
+ */
+bash-3.2$ cat aliceCli.cert.pem > aliceCli.intermediate.chain.pem
+bash-3.2$ 
+bash-3.2$ 
+bash-3.2$ cat intermediate.cert.pem >> aliceCli.intermediate.chain.pem
+
+
+
+
+/************  copying cert and creating trust chains ********/
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/ca_selfsign
+bash-3.2$ 
+bash-3.2$ find . -name bobServ.key.pem -print
+./intermediate/private/bobServ.key.pem
+bash-3.2$ 
+bash-3.2$ find . -name aliceCli.key.pem -print
+./intermediate/private/aliceCli.key.pem
+bash-3.2$ 
+
+
+
+bash-3.2$ pwd
+/Users/carlosmolina/code/python/ca_selfsign/intermediate/private
+
+bash-3.2$ ls -l
+total 88
+-rw-------  1 carlosmolina  staff  1886 14 Sep 16:24 aliceCli.key.pem
+-rw-r--r--  1 carlosmolina  staff  1766  3 Sep  2023 aliceClient.key.pem
+-rw-r--r--  1 carlosmolina  staff  1766 10 Sep  2023 attAlice.key.pem
+-rw-r--r--  1 carlosmolina  staff  1766 10 Sep  2023 attBob.key.pem
+-rw-r--r--  1 carlosmolina  staff  1766  3 Sep  2023 bobClient.key.pem
+-rw-------  1 carlosmolina  staff  1886 14 Sep 16:03 bobServ.key.pem
+-rw-r--r--  1 carlosmolina  staff  1766  3 Sep  2023 bobServer.key.pem
+-rw-r--r--  1 carlosmolina  staff  1766  2 Sep  2023 client.key.pem
+-rw-r--r--  1 carlosmolina  staff  3326  2 Sep  2023 intermediate.key.pem
+-rw-------  1 carlosmolina  staff  1886 13 Sep 23:20 pbbServ.key.pem
+-rw-r--r--@ 1 carlosmolina  staff     0 10 Sep  2023 pbbServer.key.pem
+-rw-r--r--  1 carlosmolina  staff  1766  2 Sep  2023 server.key.pem
+
+bash-3.2$ cp bobServ.key.pem /Users/carlosmolina/code/python/certskeys/server
+bash-3.2$ cp aliceCli.key.pem /Users/carlosmolina/code/python/certskeys/client
+
+
+
+
+The certificates and keys are ready for use now
+from 
+/Users/carlosmolina/code/python/certskeys
+
