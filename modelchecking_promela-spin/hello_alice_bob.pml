@@ -1,8 +1,8 @@
 /* 
  * hello_alice_bob.pml
- * shows the basic concept of a Promela
- * program.
- * An process called alice sends a greeting message
+ * shows the basic concepts of a Promela
+ * model.
+ * A process called alice sends a greeting message
  * to a process called bob, over a channel. Bob 
  * responds to alice's message over a return channel.
  * The code shows the use of :: guards in a
