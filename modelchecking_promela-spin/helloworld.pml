@@ -31,7 +31,7 @@ chan ch_a2b= [0] of {mtype}; /* channel alice to bob */
  * alice process sends (!) a msg to bob process.
  * a and b stand for alice and bob
  */
-active proctype alice()
+proctype alice()
  {
   mtype msg_to_b;  /* msg to bob */
 
@@ -45,7 +45,7 @@ active proctype alice()
  * bob process waits (?) to receive a msg from alice
  * a and b stand for alice and bob
  */
-active proctype bob()
+proctype bob()
  {
   mtype msg_from_a; /* msg from alice */
 
