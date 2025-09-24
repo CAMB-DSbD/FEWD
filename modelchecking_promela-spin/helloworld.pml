@@ -11,6 +11,8 @@
  * University of Cambridge
  *
  * 23 sep 2025
+ * 24 sep 2025: carlos corrected process declaration,
+ *              I deleted "active".
  *
  * To run a random simulation of the model
  * https://spinroot.com/spin/Man/Spin.html
