@@ -1,0 +1,62 @@
+
+
+
+
+I can see that the smallest sentences have the largest numbers, thus
+they must be the ones with one or two tokens:
+
+carlos@smartPBB_cancelSeqs% spin -t4567 -r -B ali_bob_smartPBB.pml | fgrep "<token>"
+<token>rej_ali</token>
+
+carlos@smartPBB_cancelSeqs% spin -t4548 -r -B ali_bob_smartPBB.pml | fgrep "<token>"
+<token>rej_ali</token>
+
+carlos@smartPBB_cancelSeqs% spin -t4533 -r -B ali_bob_smartPBB.pml | fgrep "<token>"
+<token>rej_bob</token>
+
+
+
+carlos@smartPBB_cancelSeqs% spin -t4566 -r -B ali_bob_smartPBB.pml | fgrep "<token>"
+<token>rej_ali</token>
+<token>acc_ali</token>
+
+
+carlos@smartPBB_cancelSeqs% spin -t2770 -r -B ali_bob_smartPBB.pml | fgrep "<token>"
+<token>acc_bob</token>
+<token>rej_bob</token>
+
+
+carlos@smartPBB_cancelSeqs% spin -t4004 -r -B ali_bob_smartPBB.pml | fgrep "<token>"
+<token>rej_bob</token>
+<token>acc_ali</token>
+
+
+
+carlos@smartPBB_cancelSeqs% spin -t2239 -r -B ali_bob_smartPBB.pml | fgrep "<token>"
+<token>acc_bob</token>
+<token>acc_bob</token>
+<token>rej_bob</token>
+<token>acc_bob</token>
+
+
+
+
+Large trail files include seqs with more tokens
+
+carlos@smartPBB_cancelSeqs% spin -t66 -r -B ali_bob_smartPBB.pml | fgrep "<token>"
+<token>acc_bob</token>
+<token>acc_bob</token>
+<token>acc_bob</token>
+<token>acc_bob</token>
+<token>acc_bob</token>
+<token>acc_bob</token>
+<token>acc_bob</token>
+<token>rej_bob</token>
+<token>acc_ali</token>
+<token>acc_ali</token>
+<token>acc_ali</token>
+<token>acc_ali</token>
+<token>acc_ali</token>
+<token>acc_ali</token>
+<token>acc_ali</token>
+
