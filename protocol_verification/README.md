@@ -1,3 +1,3 @@
-# Promela models for verifications wit Spin
+# Promela models for verifications with Spin
 
 Formal verification of the synchronsation protocol.
