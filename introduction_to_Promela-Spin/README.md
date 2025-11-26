@@ -10,9 +10,9 @@ and Spin is the model-checker.
 
 Spin is the program that verifies that the model 
 is logically sound (for example, no dead-locks) 
-and specific properties (also called asertion) 
+and specific properties (also called assertions) 
 of the model, for example, _the model never reaches 
-its final state if message cancel has not been sent and
+its final state if message ''cancel'' has not been sent and
 received_.  
 
 
